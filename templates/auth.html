@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if mode == 'register' %}Create account{% else %}Sign in{% endif %} · Elrich · Moonstone Campaign Ledger</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="auth-page">
+  <main class="auth-shell">
+    <a class="brand auth-brand" href="{{ url_for('index') }}"><span class="sigil">✦</span><span><strong>ELRICH</strong><small>MOONSTONE CAMPAIGN LEDGER</small></span></a>
+    <section class="auth-card">
+      <div class="eyebrow">Your table, together</div>
+      <h1>{% if mode == 'register' %}Create your account{% else %}Welcome back{% endif %}</h1>
+      <p class="muted">{% if mode == 'register' %}Join a campaign or start one of your own.{% else %}Sign in to see your campaign table.{% endif %}</p>
+      {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}<div class="messages">{% for category, message in messages %}<div class="message {{ category }}">{{ message }}</div>{% endfor %}</div>{% endif %}{% endwith %}
+      <form method="post" class="form-stack">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        {% if mode == 'register' %}<label>Your name<input name="name" autocomplete="name" maxlength="80" required value="{{ request.form.get('name', '') }}"></label>{% endif %}
+        <label>{% if mode == 'register' %}Email address{% else %}Email address or username{% endif %}<input type="{% if mode == 'register' %}email{% else %}text{% endif %}" name="email" autocomplete="{% if mode == 'register' %}email{% else %}username{% endif %}" maxlength="254" required value="{{ request.form.get('email', '') }}"></label>
+        <label>Password<input type="password" name="password" autocomplete="{% if mode == 'register' %}new-password{% else %}current-password{% endif %}" minlength="8" required></label>
+        <button class="button primary full" type="submit">{% if mode == 'register' %}Create account{% else %}Sign in{% endif %}</button>
+      </form>
+      <div class="auth-switch">{% if mode == 'register' %}Already have an account? <a href="{{ url_for('login') }}">Sign in</a>{% else %}New to the ledger? <a href="{{ url_for('register') }}">Create an account</a>{% endif %}</div>
+    </section>
+    <p class="auth-foot">A shared campaign ledger for your table.</p>
+  </main>
+</body></html>

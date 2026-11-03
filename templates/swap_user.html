@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Swap user · {{ campaign.name }}</title><link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"></head>
+<body><header class="topbar"><a class="brand" href="{{ url_for('campaigns') }}"><span class="sigil">✦</span><span><strong>ELRICH</strong><small>MOONSTONE CAMPAIGN LEDGER</small></span></a><div class="account">{{ user_avatar(current_user) }}<a class="user-management-button" href="{{ url_for('user_management') }}" aria-label="User management" title="User management"><span class="settings-glyph" aria-hidden="true">⚙</span></a><span class="account-name">{{ current_user.name }} · Wizard Chamberlain</span></div></header>
+<main class="container"><a class="back-link" href="{{ url_for('campaign_settings', campaign_id=campaign.id) }}">← &nbsp; Campaign parameters</a><section class="form-card swap-user-card"><div class="eyebrow">Round {{ campaign.current_round }} · Troupe Growth</div><h1>Swap user</h1><p class="muted">The new player will take over future pairings only. Completed rounds and results stay with the previous player. Set the new player's faction and prepare their five-character troupe with up to two upgrades per character.</p>
+{% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}<div class="messages">{% for category, message in messages %}<div class="message {{ category }}">{{ message }}</div>{% endfor %}</div>{% endif %}{% endwith %}
+<form method="post" class="swap-user-form"><input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+<div class="swap-selection-grid"><label>Pairing slot<select name="slot_type" id="slot-type" required><option value="player" {% if request.form.get('slot_type', 'player') == 'player' %}selected{% endif %}>Replace an active player</option>{% if bye_available %}<option value="bye" {% if request.form.get('slot_type') == 'bye' %}selected{% endif %}>Add a user in place of BYE</option>{% endif %}</select></label><label id="replace-player-field">Player to replace<select name="replace_user_id">{% for player in active_players %}<option value="{{ player.id }}" {% if request.form.get('replace_user_id', selected_replace_user) == player.id|string %}selected{% endif %}>{{ player.name }} · {{ player.faction }}</option>{% else %}<option value="">No active players</option>{% endfor %}</select></label><label>Registered user<select name="new_user_id" required><option value="">Choose a user</option>{% for user in available_users %}<option value="{{ user.id }}" {% if request.form.get('new_user_id') == user.id|string %}selected{% endif %}>{{ user.name }} · {{ user.email }}</option>{% endfor %}</select></label><label>Faction<select name="faction" id="new-faction" required>{% for faction in factions %}<option value="{{ faction }}" {% if selected_faction == faction %}selected{% endif %}>{{ faction }}</option>{% endfor %}</select></label></div>
+<div class="swap-note">A BYE can be filled only when every remaining round has one BYE. The added player will take that slot in each remaining pairing set.</div>
+<div class="swap-roster-heading"><h2>Starting troupe</h2><span>Select five characters and any faction-eligible upgrades.</span></div><div class="swap-character-grid">{% for character in characters %}<article class="swap-character faction-card" data-factions="|{{ character.factions or '' }}|"><label class="swap-character-name"><input type="checkbox" name="character_ids" value="{{ character.id }}" {% if character.id|string in request.form.getlist('character_ids') %}checked{% endif %}>{{ character.name }}</label><small>Character factions: {{ (character.factions or '').replace('|', ', ') }}</small><details class="checkbox-dropdown"><summary>Attach upgrades</summary><div class="checkbox-dropdown-list">{% for upgrade in upgrades %}<label class="check-label upgrade-option" data-factions="|{{ upgrade.factions or '' }}|"><input class="upgrade-checkbox" type="checkbox" name="upgrade_ids_{{ character.id }}" value="{{ upgrade.id }}" {% if upgrade.id|string in request.form.getlist('upgrade_ids_' ~ character.id) %}checked{% endif %}>{{ upgrade.name }}</label>{% else %}<span class="muted">No upgrades are available.</span>{% endfor %}</div></details></article>{% else %}<p class="muted">No active characters are available in the card catalogue.</p>{% endfor %}</div>
+<div class="form-actions"><a class="button secondary" href="{{ url_for('campaign_settings', campaign_id=campaign.id) }}">Cancel</a><button class="button primary" type="submit">Add user and save troupe</button></div></form></section></main>
+<script>
+const factionSelect=document.getElementById('new-faction');
+const slotSelect=document.getElementById('slot-type');
+function updateSwapForm(){
+  const faction=factionSelect.value;
+  document.getElementById('replace-player-field').hidden=slotSelect.value==='bye';
+  document.querySelectorAll('.faction-card').forEach(card=>{
+    const eligible=card.dataset.factions.split('|').includes(faction);
+    card.hidden=!eligible;
+    const character=card.querySelector('input[name="character_ids"]');
+    character.disabled=!eligible;
+    if(!eligible)character.checked=false;
+    card.querySelectorAll('.upgrade-option').forEach(option=>{
+      const upgradeEligible=option.dataset.factions.split('|').includes(faction);
+      const checkbox=option.querySelector('.upgrade-checkbox');
+      checkbox.disabled=!eligible||!character.checked||!upgradeEligible;
+      if(checkbox.disabled)checkbox.checked=false;
+    });
+  });
+}
+document.querySelectorAll('input[name="character_ids"]').forEach(input=>input.addEventListener('change',updateSwapForm));
+factionSelect.addEventListener('change',updateSwapForm);
+slotSelect.addEventListener('change',updateSwapForm);
+updateSwapForm();
+</script></body></html>
